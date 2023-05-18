@@ -40,23 +40,29 @@ library(skimr)
 #| label: problem-1
 
 # Had an arrival delay of two or more hours (> 120 minutes)
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to the arr_delay variable of >120 minutes
 flights %>% 
   filter(arr_delay >= 120)
   
 
 # Flew to Houston (IAH or HOU)
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to the dest variable to look for destination Houston (IAH or HOU)
   filter(flights, dest == "IAH"| dest == "HOU") 
 
 # Were operated by United (`UA`), American (`AA`), or Delta (`DL`)
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to the carrier variable to look for flights from United, American and Delta
   filter(flights, carrier == "UA"| carrier == "AA" | carrier == "DL") 
 
 # Departed in summer (July, August, and September)
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to the carrier month variable to look for flights departed in the summer months
   filter(flights, month == 7 | month == 8 | month == 9)  
   
 # Arrived more than two hours late, but didn't leave late
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to the arr_delay to indicate more than 120 minutes of delay but the departure delay is below 0
   filter(flights, arr_delay >=120 , dep_delay <=0) 
 
 # Were delayed by at least an hour, but made up over 30 minutes in flight
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to the arr_delay to indicate that they arrived less than 30 minutes and the departure delay was at least 60 minutes
   filter(flights, arr_delay <30 , dep_delay >=60)   
 ```
 
@@ -73,6 +79,7 @@ flights %>%
 #| label: problem-2
 
 # What months had the highest and lowest % of cancelled flights?
+#For this problem I begin using the flights table included in the nycflights13 and apply a filter to understand how many flights were cancelled (is.na(dep_time)). Then, I group by month and then I count per month and mutate a new column to understand the proportion of each month
 flights %>%
   filter(is.na(dep_time)) %>% 
   group_by (month) %>% 
@@ -87,6 +94,9 @@ flights %>%
 For the plane with the greatest number of flights and that had more than 50 seats, please create a table where it flew to during 2013.
 
 ```{r}
+#For this problem I create a new table called mostflights based on the flights table included in the nycflights13 and apply a filter to the year equal to 2013. Also, I apply a filter to bring me the results of those observations in which I have a tailnum.
+#Afterwards, I group by tailnum and origin and count the number of flights (When I ran the code without the .groups= "drop" I had a warning, thus I included that piece of code inside the summarise). Last, I arrange in descending order
+#This table I created counts me the flights by tailnum and origin
 mostflights <- flights %>%
   filter(year == 2013) %>% 
   filter(!is.na(tailnum)) %>% 
@@ -95,21 +105,20 @@ mostflights <- flights %>%
   arrange(desc(total_flights))
 mostflights
 
+#Now I do a left_join between the table defined above - mostflights - and planes by "tailnum". Also, I make sure to exclude the N/A matches by applying na_matches = "never" in the left_join.
+#Then I apply the seats > 50 filter to understand which planes have the most number of flights and have seats > 50. I save this under a new object called answer
 answer <- left_join(mostflights, planes, by="tailnum", na_matches = "never") %>% 
   filter(seats>50)
 answer
 
+#Finally, I look for the tailnum that the answer table give me as the most flights and apply that information to filter the flights table.
+#I create a new object called table_answer where I apply this filter and count the number of flights the "N328AA" tailnum did by destination
 table_answer <- flights %>% 
   filter(tailnum=="N328AA") %>% 
   group_by(tailnum,dest) %>% 
   summarise(total_flights=n(), .groups="drop") %>% 
   arrange(desc(total_flights))
 table_answer
-
-planes2 <- planes %>% 
-  filter(tailnum == "N725MQ")
-
-planes2
 
 ```
 
@@ -122,36 +131,45 @@ planes2
 ```
 
 ```{r}
+#Based on the weather table, I create a new object called july13 which filters the weather table by year == 2013 and month == 7
 july13 <- weather %>%
   filter(year==2013,month==7)
   
+#To understand the temperature distribution I do a histogram using ggplot and geom_histogram and the july13 table defined above and map the x variable as "temp". I set the title using labels (labs function)
+
 ggplot(july13, aes(x=temp)) +
   geom_histogram(binwidth = 1) +
   labs(title = "Temperature Distribution")
+
+#To understand the wind speed distribution I do a histogram using ggplot and geom_histogram and the july13 table defined above and map the x variable as "wind_speed". I set the title using labels (labs function)
 
 ggplot(july13, aes(x=wind_speed)) +
   geom_histogram(binwidth = 1) +
   labs(title = "Windspeed Distribution")
 
-#Based on the wind speed distribution I can observe outliers when the wind speed is exactly 11 as there are no observations with that information. The same happens when the wind speed is 1 or 2.
+#Answer 2: Based on the wind speed distribution I can observe outliers when the wind speed is exactly 11 as there are no observations with that information. The same happens when the wind speed is 1 or 2.
 
-ggplot(july13, aes(x=dewp, y=humid)) +
+#To understand relationships between two variables I plot a scatter plot using geom_point and also calculate the correlation between the two variables for a clear indication of the relationship. To do so, I use the table july13 and apply a summarise with the cor function to the variables dewp and humid
+
+ggplot(weather, aes(x=dewp, y=humid)) +
   geom_point() +
   labs(title = "Relationship between Dewp and Humid variables")
 
-july13 %>% 
-  summarise(corr_dh=cor(dewp,humid))
+weather %>% 
+  summarise(corr_dh=cor(dewp,humid, use="complete.obs"))
 
-#There seems to be a positive relationship between humidity and dew point temperature since the coefficient of correlation is 0.53. Therefore, as the humidity in the air increases the dew point temperature also increases
+#Answer 3: There seems to be a positive relationship between humidity and dew point temperature since the coefficient of correlation is 0.52. Therefore, as the humidity in the air increases the dew point temperature also increases
 
-ggplot(july13, aes(x=precip, y=visib)) +
+#To understand relationships between two variables I plot a scatter plot using geom_point and also calculate the correlation between the two variables for a clear indication of the relationship. To do so, I use the table july13 and apply a summarise with the cor function to the variables precip and visib
+
+ggplot(weather, aes(x=precip, y=visib)) +
   geom_point() +
   labs(title = "Relationship between Precip and Visib variables")
 
-july13 %>% 
-  summarise(corr_dh=cor(precip,visib))
+weather %>% 
+  summarise(corr_pv=cor(precip,visib, use="complete.obs"))
 
-#On the other hand the relationship between visibility and precipitation is not that clear as the coefficient of correlation is -0.24. This indicates that there is not clear linear relationship between the precip and visib variables
+#Answer 4:On the other hand the relationship between visibility and precipitation is not that clear as the coefficient of correlation is -0.32. This indicates that there is not clear linear relationship between the precip and visib variables
 
 ```
 
@@ -164,19 +182,47 @@ july13 %>%
 ```
 
 ```{r}
+#To answer the first question I begin by using the planes table, then group it by year and filter which years have missing values (i.e: N/As). Then I count them to find how many there are
 planes %>% 
   group_by(year) %>% 
   filter(is.na(year)) %>% 
-  summarise(total_na=n()) %>% 
-  arrange(desc(total_na))
+  summarise(total_na=n())
 
+#For the second question I also use the planes table and group them by manufacturer. Then, I create a new variable called total_manuf that counts the amount of manufacturers there are in the table and arrangem them in descending order. Last, I select the top 5 total manufacturers 
 planes %>% 
   group_by(manufacturer) %>% 
   summarise(total_manuf=n()) %>% 
-  arrange(desc(total_manuf))
+  arrange(desc(total_manuf)) %>% 
+  top_n(5,total_manuf)
 
-planes
-flights
+# Filter the "flights" table to include data for NYC in 2013
+flights_subset <- filter(flights, year == 2013, origin %in% c("JFK", "LGA", "EWR"))
+
+answer <- left_join(flights_subset, planes, by="tailnum", na_matches = "never") %>% 
+  mutate(manufacturer = case_when(
+    manufacturer %in% c("AIRBUS INDUSTRIE", "AIRBUS") ~ "AIRBUS", # Keep Boeing and Airbus as they are
+    manufacturer %in% c("BOEING", "EMBRAER", "BOMBARDIER INC") ~ manufacturer,
+    TRUE ~ "Other"  # Collapse other manufacturers into "Other" category
+  ))
+answer
+
+manufacturers_over_time <- answer %>%
+  group_by(month,manufacturer) %>%
+  #filter(!is.na(year.y)) %>%
+  summarise(count = n())
+
+manufacturers_over_time
+
+ggplot(manufacturers_over_time, aes(x = month, y = count, fill = manufacturer)) +
+  geom_bar(stat = "identity", position = "fill") +
+  labs(title = "Distribution of Manufacturers over Time",
+       x = "Month",
+       y = "Count",
+       fill = "Manufacturer") +
+  theme_minimal()
+
+#From the chart I can conclude that the distribution of manufacturers hasn't changed much in the year 2013 for planes departing NYC
+
 ```
 
 ## Problem 6: Use the `flights` and `planes` tables to answer the following questions:
@@ -187,19 +233,33 @@ flights
 ```
 
 ```{r}
-planes %>% 
-  group_by(manufacturer,tailnum) %>% 
-  reframe(min=year)
+# Filter flights from NYC airports in 2013
+nyc_flights_2013 <- flights %>%
+  filter(year == 2013)
 
-flights %>% 
-  filter(tailnum=="N365AA")
+# Join with planes table to get the aircraft details
+flights_with_planes <- left_join(nyc_flights_2013, planes %>% 
+                                   rename(year_plane = year), by = "tailnum")
 
+# Find the oldest plane
+oldest_plane <- flights_with_planes %>%
+  filter(!is.na(year_plane)) %>%
+  arrange(year_plane) %>%
+  select(tailnum, year_plane) %>%
+  slice(1)
 
-answer <- left_join(planes, flights, by="tailnum", na_matches = "never")
+# Display the result
+oldest_plane
 
-answer %>% 
-  summarise(total_planes=n()) %>% 
-  arrange(desc(total_planes))
+flightsnyc <- flights %>%
+  filter(origin %in% c("JFK", "LGA", "EWR"))
+
+answer <- flightsnyc %>%
+  inner_join(planes, by = "tailnum") %>%
+  distinct(tailnum) %>% 
+  summarise(count=n())
+
+answer
 
 ```
 
@@ -212,11 +272,18 @@ answer %>%
 
 ```{r}
 
+arrivdelay <- flights %>% 
+  group_by(month,dest) %>% 
+  summarise(med_arrdelay = median(arr_delay, na.rm = TRUE))
+
+arrivdelay
+
 arrivd <- flights %>% 
   group_by(month,origin,carrier) %>% 
   summarise(med_arrdelay = median(arr_delay, na.rm = TRUE))
 
 arrivd
+
 
 ggplot(arrivd, aes(x=month, y=med_arrdelay, fill=origin)) +
   geom_boxplot() +
@@ -311,7 +378,7 @@ I want you to think how we would organise our data manipulation to create the fo
 
 ![](images/sfo-cancellations.png)
 
-To make a graph that looks like the one above I believe I should create a ggplot that facet wraps by origin and carrier. The plot per each wrap would be cancellation by month.
+To make a graph that looks like the one above I believe I should create a ggplot with a geom_bar that facet wraps by origin and carrier. The sub plot per each wrap would be number of cancellations (y-axis) by month (x-axis)
 
 ## Problem 10: On your own -- Hollywood Age Gap
 
@@ -326,7 +393,7 @@ The age gaps dataset includes "gender" columns, which always contain the values 
 The following is a data dictionary of the variables used
 
 | variable            | class     | description                                                                                             |
-|:------------------|:------------------|:----------------------------------|
+|:------------------|:------------------|:---------------------------------|
 | movie_name          | character | Name of the film                                                                                        |
 | release_year        | integer   | Release year                                                                                            |
 | director            | character | Director of the film                                                                                    |
@@ -345,7 +412,50 @@ The following is a data dictionary of the variables used
 
 age_gaps <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-14/age_gaps.csv')
 
+ggplot(age_gaps, aes(x=age_difference)) +
+  geom_histogram(binwidth = 1) +
+  labs(title = "Age Difference Distribution")
 
+age_gaps %>% 
+  summarise(median_agedif=median(age_difference))
+
+#proportion_rule_applies <- mean(age_gaps$actor_1_age >= (age_gaps$actor_2_age / 2 + 7))
+
+#proportion_rule_applies
+
+#Answer 1
+age_gaps %>% 
+  group_by(movie_name) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+#Answer 2
+age_gaps %>% 
+  group_by(actor_1_name) %>% 
+  summarise(lovint=n_distinct(couple_number)) %>% 
+  arrange(desc(lovint))
+
+age_gaps %>% 
+  group_by(actor_2_name) %>% 
+  summarise(lovint=n_distinct(couple_number)) %>% 
+  arrange(desc(lovint))
+
+#Answer 3
+agedifplot <- age_gaps %>% 
+  group_by(release_year) %>% 
+  summarise(avgagedif=mean(age_difference)) 
+
+#Answer 4
+ggplot(agedifplot,aes(x=release_year,y=avgagedif)) +
+  geom_line() +
+  labs(title = "Relationship between Precip and Visib variables")
+
+#Answer 5
+same_gender <- age_gaps %>% 
+  filter(character_1_gender==character_2_gender) %>% 
+  summarise(count=n())
+
+same_gender
 ```
 
 How would you explore this data set? Here are some ideas of tables/ graphs to help you with your analysis
@@ -367,9 +477,9 @@ There is a lot of explanatory text, comments, etc. You do not need these, so del
 
 # Details
 
--   Who did you collaborate with: TYPE NAMES HERE
--   Approximately how much time did you spend on this problem set: ANSWER HERE
--   What, if anything, gave you the most trouble: ANSWER HERE
+-   Who did you collaborate with: IGNACIO GAING
+-   Approximately how much time did you spend on this problem set: 10 hours or more
+-   What, if anything, gave you the most trouble: From problem 3 onwards, specially problem 10
 
 **Please seek out help when you need it,** and remember the [15-minute rule](https://mam2022.netlify.app/syllabus/#the-15-minute-rule){target="_blank"}. You know enough R (and have enough examples of code from class and your readings) to be able to do this. If you get stuck, ask for help from others, post a question on Slack-- and remember that I am here to help too!
 
