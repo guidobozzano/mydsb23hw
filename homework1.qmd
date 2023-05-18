@@ -44,7 +44,6 @@ library(skimr)
 flights %>% 
   filter(arr_delay >= 120)
   
-
 # Flew to Houston (IAH or HOU)
 #For this problem I begin using the flights table included in the nycflights13 and apply a filter to the dest variable to look for destination Houston (IAH or HOU)
   filter(flights, dest == "IAH"| dest == "HOU") 
@@ -86,6 +85,7 @@ flights %>%
   summarise(count = n()) %>% 
   mutate(prop = count/sum(count))
  
+#Answer: Highest is February with 15.2% and lowest is November with 2.8%
 
 ```
 
@@ -188,16 +188,19 @@ planes %>%
   filter(is.na(year)) %>% 
   summarise(total_na=n())
 
-#For the second question I also use the planes table and group them by manufacturer. Then, I create a new variable called total_manuf that counts the amount of manufacturers there are in the table and arrangem them in descending order. Last, I select the top 5 total manufacturers 
+#Answer: There are 70 planes with missing date of manufacture
+
+#For the second question I also use the planes table and group them by manufacturer. Then, I create a new variable called total_manuf that counts the amount of manufacturers there are in the table and arrange them in descending order. Last, I select the top 5 total manufacturers 
 planes %>% 
   group_by(manufacturer) %>% 
   summarise(total_manuf=n()) %>% 
   arrange(desc(total_manuf)) %>% 
   top_n(5,total_manuf)
 
-# Filter the "flights" table to include data for NYC in 2013
+#To answer the third question I begin by creating a table called flights_subset that contains the origin NYC and year equal to 2013.
 flights_subset <- filter(flights, year == 2013, origin %in% c("JFK", "LGA", "EWR"))
 
+#Then I do a left join between the table before and planes by tailnum. Then I mutate the manufacturer column and apply a case when to collapse the multiple AIRBUS manufacturers into 1 and then case when to group the others
 answer <- left_join(flights_subset, planes, by="tailnum", na_matches = "never") %>% 
   mutate(manufacturer = case_when(
     manufacturer %in% c("AIRBUS INDUSTRIE", "AIRBUS") ~ "AIRBUS", # Keep Boeing and Airbus as they are
@@ -206,15 +209,16 @@ answer <- left_join(flights_subset, planes, by="tailnum", na_matches = "never") 
   ))
 answer
 
+#Then I define a manufacturers over time table and group it by month and manufacturer and count
 manufacturers_over_time <- answer %>%
   group_by(month,manufacturer) %>%
-  #filter(!is.na(year.y)) %>%
   summarise(count = n())
 
 manufacturers_over_time
 
-ggplot(manufacturers_over_time, aes(x = month, y = count, fill = manufacturer)) +
-  geom_bar(stat = "identity", position = "fill") +
+#Last I plot the distribution of manufacturers over time for the year 2013 using ggplot
+ggplot(manufacturers_over_time, aes(x = month, y = count, fill = manufacturer)) + #Set up x as month and y as the count where the colour fill is the manufacturer
+  geom_bar(stat = "identity", position = "fill") + #Set up the chart as a bar chart
   labs(title = "Distribution of Manufacturers over Time",
        x = "Month",
        y = "Count",
@@ -233,33 +237,35 @@ ggplot(manufacturers_over_time, aes(x = month, y = count, fill = manufacturer)) 
 ```
 
 ```{r}
-# Filter flights from NYC airports in 2013
+#First I filter the flights from NYC airports in 2013
 nyc_flights_2013 <- flights %>%
   filter(year == 2013)
 
-# Join with planes table to get the aircraft details
+#Then I make sure to join with planes table to get the aircraft details
 flights_with_planes <- left_join(nyc_flights_2013, planes %>% 
                                    rename(year_plane = year), by = "tailnum")
 
-# Find the oldest plane
+#Find the oldest plane
 oldest_plane <- flights_with_planes %>%
   filter(!is.na(year_plane)) %>%
   arrange(year_plane) %>%
   select(tailnum, year_plane) %>%
   slice(1)
 
-# Display the result
-oldest_plane
+oldest_plane #Display the oldest plane
 
-flightsnyc <- flights %>%
-  filter(origin %in% c("JFK", "LGA", "EWR"))
+flightsnyc <- flights %>% #Define a flights from NYC table
+  filter(origin %in% c("JFK", "LGA", "EWR")) #Only contains NYC origins
 
-answer <- flightsnyc %>%
-  inner_join(planes, by = "tailnum") %>%
+answer <- flightsnyc %>% 
+  inner_join(planes, by = "tailnum") %>% #Create an innerjoin with the planes table by tailnum
   distinct(tailnum) %>% 
   summarise(count=n())
 
-answer
+answer #Display the result
+
+#Answer A: N381AA - 1956
+#Answer B: 3322
 
 ```
 
@@ -272,37 +278,36 @@ answer
 
 ```{r}
 
+#First I define a new table called arrivdelay that groups by month and destination, then I calculate the median arrival delay excluding N/As
 arrivdelay <- flights %>% 
   group_by(month,dest) %>% 
   summarise(med_arrdelay = median(arr_delay, na.rm = TRUE))
 
-arrivdelay
+arrivdelay #Display the results
 
+#First I define a new table called arrivdelay that groups by month, origin and carrier, then I calculate the median arrival delay excluding N/As. After this I use ggplot to make a boxplot chart facet wrapped by carrier with the x-axis equal to month and y equal to med_arrdelay
 arrivd <- flights %>% 
   group_by(month,origin,carrier) %>% 
   summarise(med_arrdelay = median(arr_delay, na.rm = TRUE))
-
-arrivd
-
 
 ggplot(arrivd, aes(x=month, y=med_arrdelay, fill=origin)) +
   geom_boxplot() +
   facet_wrap(vars(carrier)) +
   labs(title="Median Arrival Delay per month and Origin Airport by Airline")
-  
 
 ```
 
 ## Problem 8: Let's take a closer look at what carriers service the route to San Francisco International (SFO). Join the `flights` and `airlines` tables and count which airlines flew the most to SFO. Produce a new dataframe, `fly_into_sfo` that contains three variables: the `name` of the airline, e.g., `United Air Lines Inc.` not `UA`, the count (number) of times it flew to SFO, and the `percent` of the trips that that particular airline flew to SFO.
 
 ```{r}
+#First, I carry out a leftjoin between the flights and airlines table by tailnum. I filter destination SFO and group by name. Then, I count and mutate a new column to find the percent trips that each airline flew to SFO
 fly_into_sfo <- left_join(flights,airlines, by="carrier") %>% 
   filter(dest=="SFO") %>% 
   group_by (name) %>% 
   summarise(count = n()) %>% 
   mutate(percent = round(count/sum(count),4)*100)
   
-fly_into_sfo
+fly_into_sfo #Display the results
 ```
 
 And here is some bonus ggplot code to plot your dataframe
@@ -412,24 +417,44 @@ The following is a data dictionary of the variables used
 
 age_gaps <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-14/age_gaps.csv')
 
+#To understand the age difference distribution I use age_gaps to make a graph using ggplot. I make sure to apply geom_histogram to make a histogram to understand the distribution
 ggplot(age_gaps, aes(x=age_difference)) +
   geom_histogram(binwidth = 1) +
   labs(title = "Age Difference Distribution")
 
+#Also, to understand what's the typical median age_difference I calculate the median value for the age_difference
 age_gaps %>% 
   summarise(median_agedif=median(age_difference))
 
-#proportion_rule_applies <- mean(age_gaps$actor_1_age >= (age_gaps$actor_2_age / 2 + 7))
+#Answer A: From the chart I can conclude that the age difference is particularly skewed towards the lower end of the difference. In addition, from the medican calculation I know that the median age difference from the age_gaps dataset is 8 which is in line with what the graph displays
 
-#proportion_rule_applies
+#To calculate the half plus seven rule I define a new table called agegapdata that has the upper and lower bounds mutate with the information provided by the formula
 
-#Answer 1
+#Then, I calculate the lower and upper age bounds based on the "half plus seven" rule
+agegapdata <- age_gaps %>%
+  mutate(lower_bound = floor(actor_1_age/2) + 7,
+         upper_bound = (actor_1_age - 7) * 2)
+
+#Afterwards, I make sure to count the number of actor/actress pairs that satisfy the "half plus seven" rule
+rule_applies <- agegapdata %>%
+  filter(actor_2_age >= lower_bound, actor_2_age <= upper_bound) %>%
+  tally()
+
+#Last, I calculate the percentage of pairs that satisfy the rule
+percentage_rule_applies <- rule_applies$n / nrow(agegapdata) * 100
+
+percentage_rule_applies #To show the results
+#Answer is around 74% (74.02597)
+
+#To understand how many couples each movie has I make a group by movie_name to the age_gaps table I count them and arrange them descendingly
 age_gaps %>% 
   group_by(movie_name) %>% 
   summarise(count=n()) %>% 
   arrange(desc(count))
 
-#Answer 2
+#Answer is Love Actually with 7
+
+#To understand which actors have the greatest number of love interests in each movie I summarise by actor_1_name and actor_2_name and then I define a new variable called loveint to count the distinct number of couples. Last I arrange them by descending order
 age_gaps %>% 
   group_by(actor_1_name) %>% 
   summarise(lovint=n_distinct(couple_number)) %>% 
@@ -440,22 +465,25 @@ age_gaps %>%
   summarise(lovint=n_distinct(couple_number)) %>% 
   arrange(desc(lovint))
 
-#Answer 3
+#Answer Pierce Brosnan for the male actors and Diane Keaton for the female actors
+
+#To understand whether the age difference varies over time I create a new table called agedifplot which groups the data by release_year and calculate the mean in agedifference. Afterwards I plot the information in a line chart using ggplot + geom_line.
+#From the graph I can conclude the age difference has varied significantly over time and does not stay constant
 agedifplot <- age_gaps %>% 
   group_by(release_year) %>% 
   summarise(avgagedif=mean(age_difference)) 
 
-#Answer 4
 ggplot(agedifplot,aes(x=release_year,y=avgagedif)) +
   geom_line() +
-  labs(title = "Relationship between Precip and Visib variables")
+  labs(title = "Average Age Difference over time")
 
-#Answer 5
+#To find the number of movies with same gender love relationships I create a table called same_gender and filter the information by how many characters gender are equal between 1 and 2 actors. Last, I count the information
 same_gender <- age_gaps %>% 
   filter(character_1_gender==character_2_gender) %>% 
   summarise(count=n())
 
 same_gender
+#Answer: There are 23 movies that display same gender love relationships in the age_gaps dataset
 ```
 
 How would you explore this data set? Here are some ideas of tables/ graphs to help you with your analysis
