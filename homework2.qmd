@@ -483,6 +483,12 @@ fraudulent_summary #Display the table with summary statistics for the fraudulent
 
 ```{r}
 
+fraud_by_category <- card_fraud %>%
+  group_by(category) %>%
+  summarise(total_fraud = sum(is_fraud == 1), total_transactions = n()) %>%
+  mutate(percentage = total_fraud / total_transactions * 100) %>%
+  arrange(percentage)
+
 # Add a column for coloring the bars
 fraud_by_category <- fraud_by_category %>%
   mutate(color = ifelse(row_number() >= 11, "Top 4", "Other")) %>% 
@@ -698,77 +704,17 @@ You will use
 
 ```{r}
 
-# Filter data for Argentina since 2000
-argentina_energy <- energy %>%
-  filter(iso_code == "ARG", year >= 2000)
-
-# Select the relevant columns for electricity generation
-argentina_generation <- argentina_energy %>%
-  select(year, coal, gas, hydro, nuclear, oil, other_renewable, solar, wind)
-
-# Convert data from wide to long format
-argentina_long <- argentina_generation %>%
-  pivot_longer(cols = -year, names_to = "source", values_to = "generation")
-
-# Create a stacked area chart for electricity generation
-ggplot(argentina_long, aes(x = year, y = generation, fill = source)) +
-  geom_area(colour = "grey90", alpha = 0.5, position = "fill") +
-  labs(title = "Electricity Generation in Argentina (2000 onwards)",
-       x = "Year",
-       y = "Generation",
-       fill = "Energy Source") +
-  scale_fill_discrete()
-
-
 ```
 
 ## 2. A scatter plot that looks at how CO2 per capita and GDP per capita are related
 
 ```{r}
 
-# Merge CO2 per capita and GDP per capita data using ISO code as the key
-co2_gdp <- left_join(co2_percap, gdp_percap, by = c("iso2c","iso3c","country","year"))
-
-co2_gdpf <- co2_gdp %>% 
-  filter(!is.na(co2percap),!is.na(GDPpercap)) #Exclude missing values from the co2percap and GDPpercap variables
-
-argentina_data <- co2_gdpf %>%
-  filter(country == "Argentina") %>%
-  mutate(year = as.factor(year))
-
-ggplot(data = argentina_data, aes(x = GDPpercap, y = co2percap)) +
-  geom_point() +
-  geom_text(aes(label = year), vjust = -0.5, hjust = 0.5, size = 3) +
-  labs(title = "CO2 per Capita vs GDP per Capita in Argentina",
-       x = "GDP per Capita",
-       y = "CO2 per Capita") +
-  theme_economist()
-
 ```
 
 ## 3. A scatter plot that looks at how electricity usage (kWh) per capita/day GDP per capita are related
 
 ```{r}
-
-# Merge CO2 per capita and GDP per capita data using ISO code as the key
-energ_gdp <- left_join(energy, gdp_percap, by = c("country","year"))
-
-energ_gdpf <- energ_gdp %>% 
-  filter(!is.na(energy_per_capita),!is.na(GDPpercap)) #Exclude missing values from the energy_per_capita and GDPpercap variables
-
-argentina_data <- energ_gdpf %>%
-  filter(country == "Argentina") %>%
-  mutate(year = as.factor(year))
-
-# Create the scatter plot
-ggplot(data = argentina_data, aes(x = energy_per_capita, y = GDPpercap)) +
-  geom_point() +
-  geom_text(aes(label = year), vjust = -0.5, hjust = 0.5, size = 3) +
-  labs(title = "Electricity Usage per Capita vs GDP per Capita",
-       x = "Electricity Usage (kWh) per Capita/Day",
-       y = "GDP per Capita") +
-  theme_economist()
-
 
 ```
 
@@ -829,6 +775,85 @@ gdp_percap <- wb_data(country = "countries_only",
 
 
 ```
+
+```{r}
+
+##1
+
+# Filter data for Argentina since 2000
+argentina_energy <- energy %>%
+  filter(iso_code == "ARG", year >= 2000)
+
+# Select the relevant columns for electricity generation
+argentina_generation <- argentina_energy %>%
+  select(year, coal, gas, hydro, nuclear, oil, other_renewable, solar, wind)
+
+# Convert data from wide to long format
+argentina_long <- argentina_generation %>%
+  pivot_longer(cols = -year, names_to = "source", values_to = "generation")
+
+# Create a stacked area chart for electricity generation
+ggplot(argentina_long, aes(x = year, y = generation, fill = source)) +
+  geom_area(colour = "grey90", alpha = 0.5, position = "fill") +
+  labs(title = "Electricity Generation in Argentina (2000 onwards)",
+       x = "Year",
+       y = "Generation",
+       fill = "Energy Source") +
+  scale_fill_discrete()
+
+```
+
+```{r}
+
+##2
+
+# Merge CO2 per capita and GDP per capita data using ISO code as the key
+co2_gdp <- left_join(co2_percap, gdp_percap, by = c("iso2c","iso3c","country","year"))
+
+co2_gdpf <- co2_gdp %>% 
+  filter(!is.na(co2percap),!is.na(GDPpercap)) #Exclude missing values from the co2percap and GDPpercap variables
+
+argentina_data <- co2_gdpf %>%
+  filter(country == "Argentina") %>%
+  mutate(year = as.factor(year))
+
+ggplot(data = argentina_data, aes(x = GDPpercap, y = co2percap)) +
+  geom_point() +
+  geom_text(aes(label = year), vjust = -0.5, hjust = 0.5, size = 3) +
+  labs(title = "CO2 per Capita vs GDP per Capita in Argentina",
+       x = "GDP per Capita",
+       y = "CO2 per Capita") +
+  theme_economist()
+
+
+```
+
+```{r}
+
+##3
+
+# Merge CO2 per capita and GDP per capita data using ISO code as the key
+energ_gdp <- left_join(energy, gdp_percap, by = c("country","year"))
+
+energ_gdpf <- energ_gdp %>% 
+  filter(!is.na(energy_per_capita),!is.na(GDPpercap)) #Exclude missing values from the energy_per_capita and GDPpercap variables
+
+argentina_data <- energ_gdpf %>%
+  filter(country == "Argentina") %>%
+  mutate(year = as.factor(year))
+
+# Create the scatter plot
+ggplot(data = argentina_data, aes(x = energy_per_capita, y = GDPpercap)) +
+  geom_point() +
+  geom_text(aes(label = year), vjust = -0.5, hjust = 0.5, size = 3) +
+  labs(title = "Electricity Usage per Capita vs GDP per Capita",
+       x = "Electricity Usage (kWh) per Capita/Day",
+       y = "GDP per Capita") +
+  theme_economist()
+
+```
+
+
 
 Specific questions:
 
